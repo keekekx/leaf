@@ -2,9 +2,9 @@ package console
 
 import (
 	"fmt"
-	"leaf/chanrpc"
-	"leaf/conf"
-	"leaf/log"
+	"github.com/keekekx/leaf/chanrpc"
+	"github.com/keekekx/leaf/conf"
+	"github.com/keekekx/leaf/log"
 	"os"
 	"path"
 	"runtime/pprof"

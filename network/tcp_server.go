@@ -1,7 +1,7 @@
 package network
 
 import (
-	"leaf/log"
+	"github.com/keekekx/leaf/log"
 	"net"
 	"sync"
 	"time"

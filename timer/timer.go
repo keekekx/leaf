@@ -1,8 +1,8 @@
 package timer
 
 import (
-	"leaf/conf"
-	"leaf/log"
+	"github.com/keekekx/leaf/conf"
+	"github.com/keekekx/leaf/log"
 	"runtime"
 	"time"
 )

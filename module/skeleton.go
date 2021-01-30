@@ -1,10 +1,10 @@
 package module
 
 import (
-	"leaf/chanrpc"
-	"leaf/console"
-	"leaf/go"
-	"leaf/timer"
+	"github.com/keekekx/leaf/chanrpc"
+	"github.com/keekekx/leaf/console"
+	"github.com/keekekx/leaf/go"
+	"github.com/keekekx/leaf/timer"
 	"time"
 )
 

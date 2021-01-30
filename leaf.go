@@ -1,11 +1,11 @@
 package leaf
 
 import (
-	"leaf/cluster"
-	"leaf/conf"
-	"leaf/console"
-	"leaf/log"
-	"leaf/module"
+	"github.com/keekekx/leaf/cluster"
+	"github.com/keekekx/leaf/conf"
+	"github.com/keekekx/leaf/console"
+	"github.com/keekekx/leaf/log"
+	"github.com/keekekx/leaf/module"
 	"os"
 	"os/signal"
 )

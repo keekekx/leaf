@@ -1,8 +1,8 @@
 package cluster
 
 import (
-	"leaf/conf"
-	"leaf/network"
+	"github.com/keekekx/leaf/conf"
+	"github.com/keekekx/leaf/network"
 	"math"
 	"time"
 )

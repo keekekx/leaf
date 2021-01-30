@@ -1,4 +1,4 @@
-module leaf
+module github.com/keekekx/leaf
 
 go 1.15
 

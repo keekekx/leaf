@@ -100,7 +100,7 @@ go install server
 package msg
 
 import (
-	"leaf/network"
+	"github.com/keekekx/leaf/network"
 )
 
 var Processor network.Processor
@@ -116,7 +116,7 @@ Processor 为消息的处理器（可由用户自定义），这里我们使用 
 package msg
 
 import (
-	"leaf/network/json"
+	"github.com/keekekx/leaf/network/json"
 )
 
 // 使用默认的 JSON 消息处理器（默认还提供了 protobuf 消息处理器）
@@ -157,8 +157,8 @@ func init() {
 package internal
 
 import (
-	"leaf/log"
-	"leaf/gate"
+	"github.com/keekekx/leaf/log"
+	"github.com/keekekx/leaf/gate"
 	"reflect"
 	"server/msg"
 )
@@ -222,7 +222,7 @@ func main() {
 	// 对应游戏服务器 Hello 消息结构体
 	data := []byte(`{
 		"Hello": {
-			"Name": "leaf"
+			"Name": "github.com/keekekx/leaf"
 		}
 	}`)
 
@@ -319,7 +319,7 @@ var (
 package internal
 
 import (
-	"leaf/module"
+	"github.com/keekekx/leaf/module"
 	"server/base"
 )
 
@@ -355,7 +355,7 @@ func (m *Module) OnDestroy() {
 package internal
 
 import (
-	"leaf/gate"
+	"github.com/keekekx/leaf/gate"
 )
 
 func init() {
