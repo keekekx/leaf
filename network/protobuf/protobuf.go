@@ -144,10 +144,10 @@ func (p *Processor) Unmarshal(data []byte) (interface{}, error) {
 	// msg
 	i := p.msgInfo[id]
 	if i.msgRawHandler != nil {
-		return MsgRaw{id, data[2:]}, nil
+		return MsgRaw{id, data[4:]}, nil
 	} else {
 		msg := reflect.New(i.msgType.Elem()).Interface()
-		return msg, proto.UnmarshalMerge(data[2:], msg.(proto.Message))
+		return msg, proto.UnmarshalMerge(data[4:], msg.(proto.Message))
 	}
 }
 
@@ -162,7 +162,7 @@ func (p *Processor) Marshal(msg interface{}) ([][]byte, error) {
 		return nil, err
 	}
 
-	id := make([]byte, 2)
+	id := make([]byte, 4)
 	if p.littleEndian {
 		binary.LittleEndian.PutUint32(id, _id)
 	} else {
@@ -175,8 +175,8 @@ func (p *Processor) Marshal(msg interface{}) ([][]byte, error) {
 }
 
 // goroutine safe
-func (p *Processor) Range(f func(id uint16, t reflect.Type)) {
+func (p *Processor) Range(f func(id uint32, t reflect.Type)) {
 	for id, i := range p.msgInfo {
-		f(uint16(id), i.msgType)
+		f(id, i.msgType)
 	}
 }
