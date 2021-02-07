@@ -7,7 +7,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/keekekx/leaf/chanrpc"
 	"github.com/keekekx/leaf/log"
-	"math"
 	"reflect"
 )
 
@@ -55,9 +54,6 @@ func (p *Processor) Register(msg proto.Message, nid uint32) {
 	}
 	if _, ok := p.msgID[msgType]; ok {
 		log.Fatal("message %s is already registered", msgType)
-	}
-	if len(p.msgInfo) >= math.MaxUint16 {
-		log.Fatal("too many protobuf messages (max = %v)", math.MaxUint16)
 	}
 
 	i := new(MsgInfo)
@@ -141,7 +137,7 @@ func (p *Processor) Unmarshal(data []byte) (interface{}, error) {
 	} else {
 		id = binary.BigEndian.Uint32(data)
 	}
-	if id >= uint32(len(p.msgInfo)) {
+	if _, ok := p.msgInfo[id]; !ok {
 		return nil, fmt.Errorf("message id %v not registered", id)
 	}
 
