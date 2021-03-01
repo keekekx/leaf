@@ -90,6 +90,12 @@ type agent struct {
 }
 
 func (a *agent) Run() {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("gate has some error!")
+		}
+	}()
+
 	for {
 		data, err := a.conn.ReadMsg()
 		if err != nil {
@@ -98,12 +104,17 @@ func (a *agent) Run() {
 		}
 
 		if a.gate.Processor != nil {
-			msg, err := a.gate.Processor.Unmarshal(data)
+			ctx, msg, err := a.gate.Processor.Unmarshal(data)
 			if err != nil {
 				log.Debug("unmarshal message error: %v", err)
 				break
 			}
-			err = a.gate.Processor.Route(msg, a)
+
+			resp, err := a.gate.Processor.Route(msg, a)
+			if resp != nil {
+				a.RespMsg(ctx, resp)
+			}
+
 			if err != nil {
 				log.Debug("route message error: %v", err)
 				break
@@ -121,9 +132,23 @@ func (a *agent) OnClose() {
 	}
 }
 
-func (a *agent) WriteMsg(msg interface{}) {
+func (a *agent) RespMsg(ctx uint32, msg interface{}) {
 	if a.gate.Processor != nil {
-		data, err := a.gate.Processor.Marshal(msg)
+		data, err := a.gate.Processor.Marshal(ctx, msg)
+		if err != nil {
+			log.Error("marshal message %v error: %v", reflect.TypeOf(msg), err)
+			return
+		}
+		err = a.conn.WriteMsg(data...)
+		if err != nil {
+			log.Error("write message %v error: %v", reflect.TypeOf(msg), err)
+		}
+	}
+}
+
+func (a *agent) SendMsg(msg interface{}) {
+	if a.gate.Processor != nil {
+		data, err := a.gate.Processor.Marshal(0, msg)
 		if err != nil {
 			log.Error("marshal message %v error: %v", reflect.TypeOf(msg), err)
 			return

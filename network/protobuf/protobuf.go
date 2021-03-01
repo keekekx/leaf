@@ -26,7 +26,7 @@ type MsgInfo struct {
 	msgRawHandler MsgHandler
 }
 
-type MsgHandler func([]interface{})
+type MsgHandler func([]interface{}) (interface{}, error)
 
 type MsgRaw struct {
 	msgID      uint32
@@ -94,65 +94,72 @@ func (p *Processor) SetRawHandler(id uint32, msgRawHandler MsgHandler) {
 }
 
 // goroutine safe
-func (p *Processor) Route(msg interface{}, userData interface{}) error {
+func (p *Processor) Route(msg interface{}, userData interface{}) (interface{}, error) {
 	// raw
 	if msgRaw, ok := msg.(MsgRaw); ok {
 		if _, ok := p.msgInfo[msgRaw.msgID]; !ok {
-			return fmt.Errorf("message id %v not registered", msgRaw.msgID)
+			return nil, fmt.Errorf("message id %v not registered", msgRaw.msgID)
 		}
 
 		i := p.msgInfo[msgRaw.msgID]
 		if i.msgRawHandler != nil {
-			i.msgRawHandler([]interface{}{msgRaw.msgID, msgRaw.msgRawData, userData})
+			return i.msgRawHandler([]interface{}{msgRaw.msgID, msgRaw.msgRawData, userData})
 		}
-		return nil
+		return nil, nil
 	}
 
 	// protobuf
 	msgType := reflect.TypeOf(msg)
 	id, ok := p.msgID[msgType]
 	if !ok {
-		return fmt.Errorf("message %s not registered", msgType)
+		return nil, fmt.Errorf("message %s not registered", msgType)
 	}
 	i := p.msgInfo[id]
 	if i.msgHandler != nil {
-		i.msgHandler([]interface{}{msg, userData})
+		return i.msgHandler([]interface{}{msg, userData})
 	}
 	if i.msgRouter != nil {
-		i.msgRouter.Go(msgType, msg, userData)
+		return i.msgRouter.Call1(msgType, msg, userData)
 	}
-	return nil
+	return nil, nil
 }
 
 // goroutine safe
-func (p *Processor) Unmarshal(data []byte) (interface{}, error) {
-	if len(data) < 4 {
-		return nil, errors.New("protobuf data too short")
+func (p *Processor) Unmarshal(data []byte) (uint32, interface{}, error) {
+	if len(data) < 8 {
+		return 0, nil, errors.New("protobuf data too short")
+	}
+
+	var ctx uint32
+	if p.littleEndian {
+		ctx = binary.LittleEndian.Uint32(data)
+	} else {
+		ctx = binary.BigEndian.Uint32(data)
 	}
 
 	// id
 	var id uint32
 	if p.littleEndian {
-		id = binary.LittleEndian.Uint32(data)
+		id = binary.LittleEndian.Uint32(data[4:])
 	} else {
-		id = binary.BigEndian.Uint32(data)
+		id = binary.BigEndian.Uint32(data[4:])
 	}
 	if _, ok := p.msgInfo[id]; !ok {
-		return nil, fmt.Errorf("message id %v not registered", id)
+		return ctx, nil, fmt.Errorf("message id %v not registered", id)
 	}
 
 	// msg
 	i := p.msgInfo[id]
 	if i.msgRawHandler != nil {
-		return MsgRaw{id, data[4:]}, nil
+		return ctx, MsgRaw{id, data[8:]}, nil
 	} else {
 		msg := reflect.New(i.msgType.Elem()).Interface()
-		return msg, proto.UnmarshalMerge(data[4:], msg.(proto.Message))
+		return ctx, msg, proto.UnmarshalMerge(data[8:], msg.(proto.Message))
 	}
 }
 
 // goroutine safe
-func (p *Processor) Marshal(msg interface{}) ([][]byte, error) {
+func (p *Processor) Marshal(_ctx uint32, msg interface{}) ([][]byte, error) {
 	msgType := reflect.TypeOf(msg)
 
 	// id
@@ -160,6 +167,13 @@ func (p *Processor) Marshal(msg interface{}) ([][]byte, error) {
 	if !ok {
 		err := fmt.Errorf("message %s not registered", msgType)
 		return nil, err
+	}
+
+	ctx := make([]byte, 4)
+	if p.littleEndian {
+		binary.LittleEndian.PutUint32(ctx, _ctx)
+	} else {
+		binary.BigEndian.PutUint32(ctx, _ctx)
 	}
 
 	id := make([]byte, 4)
@@ -171,7 +185,7 @@ func (p *Processor) Marshal(msg interface{}) ([][]byte, error) {
 
 	// data
 	data, err := proto.Marshal(msg.(proto.Message))
-	return [][]byte{id, data}, err
+	return [][]byte{ctx, id, data}, err
 }
 
 // goroutine safe
