@@ -113,11 +113,11 @@ func (s *Server) exec(ci *CallInfo) (err error) {
 	// execute
 	switch ci.f.(type) {
 	case func([]interface{}) (interface{}, error):
-		ret := ci.f.(func([]interface{}) interface{})(ci.args)
-		return s.ret(ci, &RetInfo{ret: ret})
+		ret, err := ci.f.(func([]interface{}) (interface{}, error))(ci.args)
+		return s.ret(ci, &RetInfo{ret: ret, err : err})
 	case func([]interface{}) ([]interface{}, error):
-		ret := ci.f.(func([]interface{}) []interface{})(ci.args)
-		return s.ret(ci, &RetInfo{ret: ret})
+		ret, err := ci.f.(func([]interface{}) ([]interface{}, error))(ci.args)
+		return s.ret(ci, &RetInfo{ret: ret, err : err})
 	}
 
 	panic("bug")
