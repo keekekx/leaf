@@ -66,9 +66,8 @@ func assert(i interface{}) []interface{} {
 // you must call the function before calling Open and Go
 func (s *Server) Register(id interface{}, f interface{}) {
 	switch f.(type) {
-	case func([]interface{}):
-	case func([]interface{}) interface{}:
-	case func([]interface{}) []interface{}:
+	case func([]interface{}) (interface{}, error):
+	case func([]interface{}) ([]interface{}, error):
 	default:
 		panic(fmt.Sprintf("function id %v: definition of function is invalid", id))
 	}
@@ -113,13 +112,10 @@ func (s *Server) exec(ci *CallInfo) (err error) {
 
 	// execute
 	switch ci.f.(type) {
-	case func([]interface{}):
-		ci.f.(func([]interface{}))(ci.args)
-		return s.ret(ci, &RetInfo{})
-	case func([]interface{}) interface{}:
+	case func([]interface{}) (interface{}, error):
 		ret := ci.f.(func([]interface{}) interface{})(ci.args)
 		return s.ret(ci, &RetInfo{ret: ret})
-	case func([]interface{}) []interface{}:
+	case func([]interface{}) ([]interface{}, error):
 		ret := ci.f.(func([]interface{}) []interface{})(ci.args)
 		return s.ret(ci, &RetInfo{ret: ret})
 	}
