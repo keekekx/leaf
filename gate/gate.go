@@ -121,6 +121,9 @@ func (a *agent) Run() {
 			if err != nil && a.gate.CreateErrorResp != nil {
 				if e, ok := err.(*util.ErrorInfo); ok {
 					a.RespMsg(ctx, a.gate.CreateErrorResp(e))
+					if e.Kick {
+						break
+					}
 				}
 				log.Debug("message error: %v", err)
 			}

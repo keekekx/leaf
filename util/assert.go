@@ -5,6 +5,7 @@ import "fmt"
 type ErrorInfo struct {
 	Code interface{}
 	Debug string
+	Kick bool
 }
 
 func (e *ErrorInfo) Error() string {
@@ -16,6 +17,16 @@ func Assert(check bool, code interface{}, debug string) {
 		panic(&ErrorInfo{
 			Code : code,
 			Debug: debug,
+		})
+	}
+}
+
+func AssertKick(check bool, code interface{}, debug string) {
+	if !check {
+		panic(&ErrorInfo{
+			Code : code,
+			Debug: debug,
+			Kick: true,
 		})
 	}
 }
