@@ -19,6 +19,14 @@ func NewError(code interface{}, debug string) *ErrorInfo {
 	}
 }
 
+func Panic( code interface{}, debug string, kick bool){
+	panic(&ErrorInfo{
+		Code : code,
+		Debug: debug,
+		Kick: kick,
+	})
+}
+
 func Assert(check bool, code interface{}, debug string) {
 	if !check {
 		panic(&ErrorInfo{
