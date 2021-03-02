@@ -66,6 +66,8 @@ func assert(i interface{}) []interface{} {
 // you must call the function before calling Open and Go
 func (s *Server) Register(id interface{}, f interface{}) {
 	switch f.(type) {
+	case func([]interface{}):
+	case func([]interface{}) error:
 	case func([]interface{}) (interface{}, error):
 	case func([]interface{}) ([]interface{}, error):
 	default:
@@ -112,6 +114,12 @@ func (s *Server) exec(ci *CallInfo) (err error) {
 
 	// execute
 	switch ci.f.(type) {
+	case func([]interface{}):
+		ci.f.(func([]interface{}))(ci.args)
+		return s.ret(ci, &RetInfo{})
+	case func([]interface{}) error:
+		err := ci.f.(func([]interface{}) error)(ci.args)
+		return s.ret(ci, &RetInfo{err : err})
 	case func([]interface{}) (interface{}, error):
 		ret, err := ci.f.(func([]interface{}) (interface{}, error))(ci.args)
 		return s.ret(ci, &RetInfo{ret: ret, err : err})
@@ -224,11 +232,11 @@ func (c *Client) f(id interface{}, n int) (f interface{}, err error) {
 	var ok bool
 	switch n {
 	case 0:
-		_, ok = f.(func([]interface{}))
+		_, ok = f.(func([]interface{}) error)
 	case 1:
-		_, ok = f.(func([]interface{}) interface{})
+		_, ok = f.(func([]interface{}) (interface{}, error))
 	case 2:
-		_, ok = f.(func([]interface{}) []interface{})
+		_, ok = f.(func([]interface{}) ([]interface{}, error))
 	default:
 		panic("bug")
 	}
