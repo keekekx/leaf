@@ -4,6 +4,7 @@ import (
 	"github.com/keekekx/leaf/chanrpc"
 	"github.com/keekekx/leaf/log"
 	"github.com/keekekx/leaf/network"
+	"github.com/keekekx/leaf/util"
 	"net"
 	"reflect"
 	"time"
@@ -26,6 +27,8 @@ type Gate struct {
 	TCPAddr      string
 	LenMsgLen    int
 	LittleEndian bool
+
+	CreateErrorResp func(e *util.ErrorInfo) interface{}
 }
 
 func (gate *Gate) Run(closeSig chan bool) {
@@ -115,9 +118,11 @@ func (a *agent) Run() {
 				a.RespMsg(ctx, resp)
 			}
 
-			if err != nil {
-				log.Debug("route message error: %v", err)
-				break
+			if err != nil && a.gate.CreateErrorResp != nil {
+				if e, ok := err.(*util.ErrorInfo); ok {
+					a.RespMsg(ctx, a.gate.CreateErrorResp(e))
+				}
+				log.Debug("message error: %v", err)
 			}
 		}
 	}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/keekekx/leaf/conf"
 	"github.com/keekekx/leaf/log"
+	"github.com/keekekx/leaf/util"
 	"runtime"
 )
 
@@ -153,6 +154,24 @@ func (s *Server) Go(id interface{}, args ...interface{}) {
 		f:    f,
 		args: args,
 	}
+}
+
+func (s *Server) Dispatch(id interface{}, args ...interface{}) (ret interface{},err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			err = e.(*util.ErrorInfo)
+		}
+	}()
+
+	f := s.functions[id]
+	if f == nil {
+		return nil, errors.New(fmt.Sprintf("not register this id -> %s", id))
+	}
+
+	if c,ok := f.(func([]interface{})(interface{}, error)); ok {
+		return c(args)
+	}
+	return nil, errors.New(fmt.Sprintf("type is not match"))
 }
 
 // goroutine safe

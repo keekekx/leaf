@@ -119,7 +119,7 @@ func (p *Processor) Route(msg interface{}, userData interface{}) (interface{}, e
 		return i.msgHandler([]interface{}{msg, userData})
 	}
 	if i.msgRouter != nil {
-		return i.msgRouter.Call1(msgType, msg, userData)
+		return i.msgRouter.Dispatch(msgType, msg, userData)
 	}
 	return nil, nil
 }
