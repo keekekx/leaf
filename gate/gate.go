@@ -114,9 +114,6 @@ func (a *agent) Run() {
 			}
 
 			resp, err := a.gate.Processor.Route(msg, a)
-			if resp != nil {
-				a.RespMsg(ctx, resp)
-			}
 
 			if err != nil && a.gate.CreateErrorResp != nil {
 				if e, ok := err.(*util.ErrorInfo); ok {
@@ -126,6 +123,8 @@ func (a *agent) Run() {
 					}
 				}
 				log.Debug("message error: %v", err)
+			}else if resp != nil {
+				a.RespMsg(ctx, resp)
 			}
 		}
 	}
