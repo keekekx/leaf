@@ -1,6 +1,7 @@
 package gate
 
 import (
+	"container/list"
 	"github.com/keekekx/leaf/chanrpc"
 	"github.com/keekekx/leaf/log"
 	"github.com/keekekx/leaf/network"
@@ -43,7 +44,7 @@ func (gate *Gate) Run(closeSig chan bool) {
 		wsServer.CertFile = gate.CertFile
 		wsServer.KeyFile = gate.KeyFile
 		wsServer.NewAgent = func(conn *network.WSConn) network.Agent {
-			a := &agent{conn: conn, gate: gate}
+			a := &agent{conn: conn, gate: gate, respBuff: list.New()}
 			if gate.AgentChanRPC != nil {
 				gate.AgentChanRPC.Go("NewAgent", a)
 			}
@@ -61,7 +62,7 @@ func (gate *Gate) Run(closeSig chan bool) {
 		tcpServer.MaxMsgLen = gate.MaxMsgLen
 		tcpServer.LittleEndian = gate.LittleEndian
 		tcpServer.NewAgent = func(conn *network.TCPConn) network.Agent {
-			a := &agent{conn: conn, gate: gate}
+			a := &agent{conn: conn, gate: gate, respBuff: list.New()}
 			if gate.AgentChanRPC != nil {
 				gate.AgentChanRPC.Go("NewAgent", a)
 			}
@@ -86,10 +87,16 @@ func (gate *Gate) Run(closeSig chan bool) {
 
 func (gate *Gate) OnDestroy() {}
 
+type respIns struct {
+	ctx  uint32
+	data interface{}
+}
+
 type agent struct {
 	conn     network.Conn
 	gate     *Gate
 	userData interface{}
+	respBuff *list.List
 }
 
 func (a *agent) Run() {
@@ -100,6 +107,10 @@ func (a *agent) Run() {
 	}()
 
 	for {
+		//历史消息缓冲，同ctx请求时，认为已经处理过，回复历史记录
+		if a.respBuff.Len() > 3 {
+			a.respBuff.Remove(a.respBuff.Back())
+		}
 		data, err := a.conn.ReadMsg()
 		if err != nil {
 			log.Debug("read message: %v", err)
@@ -113,18 +124,45 @@ func (a *agent) Run() {
 				break
 			}
 
+			useBuff := false
+			for i := a.respBuff.Front(); i != nil; i = i.Next() {
+				r := i.Value.(*respIns)
+				if r.ctx == ctx {
+					a.RespMsg(ctx, r.data)
+					useBuff = true
+					break
+				}
+			}
+
+			if useBuff {
+				continue
+			}
+
 			resp, err := a.gate.Processor.Route(msg, a)
 
 			if err != nil && a.gate.CreateErrorResp != nil {
 				if e, ok := err.(*util.ErrorInfo); ok {
-					a.RespMsg(ctx, a.gate.CreateErrorResp(e))
+					r := a.gate.CreateErrorResp(e)
+					a.RespMsg(ctx, r)
+					if ctx > 0 {
+						a.respBuff.PushFront(&respIns{
+							ctx:  ctx,
+							data: r,
+						})
+					}
 					if e.Kick {
 						break
 					}
 				}
 				log.Debug("message error: %v", err)
-			}else if resp != nil {
+			} else if resp != nil {
 				a.RespMsg(ctx, resp)
+				if ctx > 0 {
+					a.respBuff.PushFront(&respIns{
+						ctx:  ctx,
+						data: resp,
+					})
+				}
 			}
 		}
 	}
