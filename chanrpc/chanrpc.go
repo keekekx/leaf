@@ -69,6 +69,7 @@ func (s *Server) Register(id interface{}, f interface{}) {
 	switch f.(type) {
 	case func([]interface{}):
 	case func([]interface{}) error:
+	case func([]interface{}) interface{}:
 	case func([]interface{}) (interface{}, error):
 	case func([]interface{}) ([]interface{}, error):
 	default:
@@ -121,6 +122,9 @@ func (s *Server) exec(ci *CallInfo) (err error) {
 	case func([]interface{}) error:
 		err := ci.f.(func([]interface{}) error)(ci.args)
 		return s.ret(ci, &RetInfo{err : err})
+	case func([]interface{}) interface{}:
+		ret := ci.f.(func([]interface{}) interface{})(ci.args)
+		return s.ret(ci, &RetInfo{ret: ret})
 	case func([]interface{}) (interface{}, error):
 		ret, err := ci.f.(func([]interface{}) (interface{}, error))(ci.args)
 		return s.ret(ci, &RetInfo{ret: ret, err : err})
@@ -168,8 +172,8 @@ func (s *Server) Dispatch(id interface{}, args ...interface{}) (ret interface{},
 		return nil, errors.New(fmt.Sprintf("not register this id -> %s", id))
 	}
 
-	if c,ok := f.(func([]interface{})(interface{}, error)); ok {
-		return c(args)
+	if c,ok := f.(func([]interface{})interface{}); ok {
+		return c(args), nil
 	}
 	return nil, errors.New(fmt.Sprintf("type is not match"))
 }
